@@ -33,7 +33,7 @@ div[data-testid="metric-container"] { background: white; border-radius: 10px; pa
 # ── DATA ───────────────────────────────────────────────────────────
 @st.cache_data
 def load():
-    path = "/Users/issazeinn/Desktop/Schneider Dashboard/Schneider_Dashboard.xlsm"
+    path = "Schneider_Dashboard.xlsm"
 
     r  = pd.read_excel(path, sheet_name="Ratios",              header=None, engine="openpyxl")
     i  = pd.read_excel(path, sheet_name="Income Statement",    header=None, engine="openpyxl")
