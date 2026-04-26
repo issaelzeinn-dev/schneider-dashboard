@@ -4,28 +4,29 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import pandas as pd
 
-st.set_page_config(page_title="Schneider Electric - Financial Dashboard", layout="wide")
+st.set_page_config(page_title="Schneider Electric - Financial Dashboard", layout="wide", page_icon="⚡")
 
 # ── THEME ──────────────────────────────────────────────────────────
-NAVY   = "#111111"
-TEAL   = "#166534"
-GREEN  = "#16A34A"
-AMBER  = "#6B7280"
+NAVY   = "#1F497D"
+TEAL   = "#0A6E6E"
+GREEN  = "#1A7A3C"
+AMBER  = "#C47800"
 RED    = "#C0392B"
 LGRAY  = "#F5F7FA"
 MGRAY  = "#E8ECF0"
-DGRAY  = "#4B5563"
+DGRAY  = "#5A6473"
 WHITE  = "#FFFFFF"
 YEARS  = [2021, 2022, 2023, 2024, 2025]
 
 st.markdown("""
 <style>
-html, body, [class*="css"] { font-family: 'Aptos Narrow', 'Aptos', 'Arial Narrow', Arial, sans-serif; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .main { background: #F8FAFB; }
 .block-container { padding: 1.2rem 2rem 2rem; }
 .stTabs [data-baseweb="tab-list"] { gap: 4px; background: #E8ECF0; border-radius: 10px; padding: 4px; }
-.stTabs [data-baseweb="tab"] { border-radius: 8px; padding: 8px 18px; font-weight: 500; font-size: 13px; color: #111111 !important; }
-.stTabs [aria-selected="true"] { background: #166534 !important; color: white !important; }
+.stTabs [data-baseweb="tab"] { border-radius: 8px; padding: 8px 18px; font-weight: 500; font-size: 13px; }
+.stTabs [aria-selected="true"] { background: #1F497D !important; color: white !important; }
 div[data-testid="metric-container"] { background: white; border-radius: 10px; padding: 14px; border: 1px solid #E2E8F0; }
 </style>
 """, unsafe_allow_html=True)
@@ -40,111 +41,109 @@ def load():
     cf = pd.read_excel(path, sheet_name="Cash Flow Statement", header=None, engine="openpyxl")
     bs = pd.read_excel(path, sheet_name="Balance Sheet",       header=None, engine="openpyxl")
 
-    # IS cols ordered FY2021→FY2025: 17,14,11,8,5
-    IC = [17, 14, 11, 8, 5]
-    # Ratios cols ordered FY2021→FY2025: 7,6,5,4,3
-    RC = [7, 6, 5, 4, 3]
-    # CFS cols ordered FY2021→FY2025: 12,10,8,6,4
-    CC = [12, 10, 8, 6, 4]
+    def to_num(v):
+        try: return float(v)
+        except: return None
 
-    def irow(df, c): return [df.iloc[c, x] for x in IC]
-    def rrow(df, c): return [df.iloc[c, x] for x in RC]
-    def crow(df, c): return [df.iloc[c, x] for x in CC]
+    # NEW column positions (FY2021 -> FY2025)
+    IC = [28, 25, 22, 19, 16]   # Income Statement
+    RC = [9,  8,  7,  6,  5]    # Ratios
+    CC = [26, 24, 22, 20, 18]   # Cash Flow Statement
+
+    def irow(df, c): return [to_num(df.iloc[c, x]) for x in IC]
+    def rrow(df, c): return [to_num(df.iloc[c, x]) for x in RC]
+    def crow(df, c): return [to_num(df.iloc[c, x]) for x in CC]
 
     d = {}
 
-    # Income Statement (row index = excel row - 1, 0-based, header is row 0)
-    d["revenue"]      = irow(i, 2)   # 40152 25
-    d["cogs"]         = irow(i, 3)
-    d["gross_profit"] = irow(i, 4)
-    d["ebita"]        = irow(i, 10)
-    d["ebitda"]       = irow(i, 11)
-    d["ebit"]         = irow(i, 13)
-    d["net_income"]   = irow(i, 23)
-    d["int_expense"]  = irow(i, 15)  # gross cost fin debt
+    # Income Statement - new row positions confirmed
+    d["revenue"]      = irow(i, 3)
+    d["cogs"]         = irow(i, 4)
+    d["gross_profit"] = irow(i, 5)
+    d["ebita"]        = irow(i, 11)
+    d["ebitda"]       = irow(i, 12)
+    d["ebit"]         = irow(i, 14)
+    d["net_income"]   = irow(i, 24)
+    d["int_expense"]  = irow(i, 16)
 
-    # Ratios (0-based)
+    # Ratios - new row positions confirmed
     d["roe"]          = rrow(r, 3)
     d["ros"]          = rrow(r, 4)
     d["asset_to"]     = rrow(r, 5)
     d["eq_mult"]      = rrow(r, 6)
     d["gross_m"]      = rrow(r, 10)
-    d["ebita_m"]      = rrow(r, 12)
-    d["ebit_m"]       = rrow(r, 13)
-    d["dso"]          = rrow(r, 15)
-    d["dio"]          = rrow(r, 16)
-    d["dpo"]          = rrow(r, 17)
-    d["ccc"]          = rrow(r, 18)
-    d["current_r"]    = rrow(r, 22)
-    d["quick_r"]      = rrow(r, 23)
-    d["cash_r"]       = rrow(r, 24)
-    d["de_ratio"]     = rrow(r, 26)
-    d["debt_ratio"]   = rrow(r, 27)
-    d["int_cov"]      = rrow(r, 28)
-    d["nd_ebita"]     = rrow(r, 29)
-    d["payout"]       = rrow(r, 31)
-    d["div_yield"]    = rrow(r, 32)
-    d["eps"]          = rrow(r, 33)
-    d["pe"]           = rrow(r, 34)
-    d["pb"]           = rrow(r, 35)
-    d["net_debt"]     = rrow(r, 36)
-    d["ev"]           = rrow(r, 37)
-    d["ev_ebita"]     = rrow(r, 38)
-    d["roce"]         = rrow(r, 39)
+    d["ebita_m"]      = rrow(r, 13)
+    d["ebitda_m"]     = rrow(r, 14)
+    d["ebit_m"]       = rrow(r, 15)
+    d["dso"]          = rrow(r, 17)
+    d["dio"]          = rrow(r, 18)
+    d["dpo"]          = rrow(r, 19)
+    d["ccc"]          = rrow(r, 20)
+    d["current_r"]    = rrow(r, 24)
+    d["quick_r"]      = rrow(r, 25)
+    d["cash_r"]       = rrow(r, 26)
+    d["de_ratio"]     = rrow(r, 28)
+    d["debt_ratio"]   = rrow(r, 29)
+    d["int_cov"]      = rrow(r, 30)
+    d["nd_ebita"]     = rrow(r, 31)
+    d["nd_ebitda"]    = rrow(r, 32)
+    d["payout"]       = rrow(r, 34)
+    d["div_yield"]    = rrow(r, 35)
+    d["eps"]          = rrow(r, 36)
+    d["pe"]           = rrow(r, 37)
+    d["pb"]           = rrow(r, 38)
+    d["net_debt"]     = rrow(r, 39)
+    d["ev"]           = rrow(r, 40)
+    d["ev_ebita"]     = rrow(r, 41)
+    d["roce"]         = rrow(r, 43)
 
-    # Derived EBITDA ratios
-    d["ebitda_m"]     = [e/rev if rev else None for e,rev in zip(d["ebitda"], d["revenue"])]
-    d["nd_ebitda"]    = [nd/eb if eb else None for nd,eb in zip(d["net_debt"], d["ebitda"])]
-    d["int_cov_ebd"]  = [eb/abs(ie) if ie else None for eb,ie in zip(d["ebitda"], d["int_expense"])]
+    # Derived ratios - with safe division
+    d["int_cov_ebd"]  = [to_num(eb)/abs(to_num(ie)) if to_num(ie) else None
+                          for eb,ie in zip(d["ebitda"], d["int_expense"])]
 
-    # Cash Flow Statement (0-based row)
-    d["cfo"]     = crow(cf, 19)   # TOTAL I
-    d["capex"]   = crow(cf, 23)   # Net capital expenditure (negative)
-    d["cfi"]     = crow(cf, 28)   # TOTAL II
-    d["cff"]     = crow(cf, 38)   # TOTAL III
-    d["divs"]    = crow(cf, 36)   # Dividends SE shareholders
-    d["buyback"] = crow(cf, 31)   # Treasury shares
-    d["ma"]      = crow(cf, 24)   # Acquisitions net
+    # Cash Flow Statement - same rows, new columns
+    d["cfo"]     = crow(cf, 19)
+    d["capex"]   = crow(cf, 23)
+    d["cfi"]     = crow(cf, 28)
+    d["cff"]     = crow(cf, 38)
+    d["divs"]    = crow(cf, 36)
+    d["buyback"] = crow(cf, 31)
+    d["ma"]      = crow(cf, 24)
 
-    d["fcf"]     = [c + cap for c,cap in zip(d["cfo"], d["capex"])]
-    d["fcf_m"]   = [f/rev if rev else None for f,rev in zip(d["fcf"], d["revenue"])]
-    d["fcf_ni"]  = [f/ni if ni else None for f,ni in zip(d["fcf"], d["net_income"])]
-    d["cfo_ebd"] = [c/e if e else None for c,e in zip(d["cfo"], d["ebitda"])]
-    d["capex_r"] = [abs(cap)/rev if rev else None for cap,rev in zip(d["capex"], d["revenue"])]
-    dda = [e - eb for e,eb in zip(d["ebitda"], d["ebita"])]
-    d["capex_da"]= [abs(cap)/da if da else None for cap,da in zip(d["capex"], dda)]
+    def sdiv(a, b):
+        try:
+            a, b = float(a), float(b)
+            return a / b if b else None
+        except: return None
 
-    # Balance Sheet
-    d["intangibles"]  = [bs.iloc[2,  3], bs.iloc[2,  6]]
-    d["ppe"]          = [bs.iloc[3,  3], bs.iloc[3,  6]]
-    d["oth_nca"]      = [bs.iloc[4,  3], bs.iloc[4,  6]]
-    d["inventories"]  = [bs.iloc[6,  3], bs.iloc[6,  6]]
-    d["receivables"]  = [bs.iloc[7,  3], bs.iloc[7,  6]]
-    d["cash"]         = [bs.iloc[9,  3], bs.iloc[9,  6]]
-    d["total_assets"] = [bs.iloc[11, 3], bs.iloc[11, 6]]
-    d["equity"]       = [bs.iloc[16, 3], bs.iloc[16, 6]]
-    d["lt_debt"]      = [bs.iloc[17, 3], bs.iloc[17, 6]]
-    d["st_debt"]      = [bs.iloc[22, 3], bs.iloc[22, 6]]
+    d["fcf"]     = [c + cap if c is not None and cap is not None else None
+                    for c,cap in zip(d["cfo"], d["capex"])]
+    d["fcf_m"]   = [sdiv(f, rev) for f,rev in zip(d["fcf"],     d["revenue"])]
+    d["fcf_ni"]  = [sdiv(f, ni)  for f,ni  in zip(d["fcf"],     d["net_income"])]
+    d["cfo_ebd"] = [sdiv(c, e)   for c,e   in zip(d["cfo"],     d["ebitda"])]
+    d["capex_r"] = [sdiv(abs(cap) if cap else None, rev)
+                    for cap,rev in zip(d["capex"], d["revenue"])]
+    dda = [sdiv(e - eb, 1) if e is not None and eb is not None else None
+           for e,eb in zip(d["ebitda"], d["ebita"])]
+    d["capex_da"]= [sdiv(abs(cap) if cap else None, da)
+                    for cap,da in zip(d["capex"], dda)]
+
+    # Balance Sheet - new col positions: FY2025=15, FY2024=18
+    def bval(row, col): return to_num(bs.iloc[row, col])
+    d["intangibles"]  = [bval(2,  15), bval(2,  18)]
+    d["ppe"]          = [bval(3,  15), bval(3,  18)]
+    d["oth_nca"]      = [bval(4,  15), bval(4,  18)]
+    d["inventories"]  = [bval(6,  15), bval(6,  18)]
+    d["receivables"]  = [bval(7,  15), bval(7,  18)]
+    d["cash"]         = [bval(9,  15), bval(9,  18)]
+    d["total_assets"] = [bval(11, 15), bval(11, 18)]
+    d["equity"]       = [bval(16, 15), bval(16, 18)]
+    d["lt_debt"]      = [bval(17, 15), bval(17, 18)]
+    d["st_debt"]      = [bval(22, 15), bval(22, 18)]
 
     return d
 
-_d_base = load()
-
-# ── MANUAL ENTRY MERGE ─────────────────────────────────────────────
-# BS keys are 2-element snapshots, not year-indexed time series
-_BS_KEYS = {'intangibles','ppe','oth_nca','inventories','receivables',
-            'cash','total_assets','equity','lt_debt','st_debt'}
-d = {k: list(v) for k, v in _d_base.items()}
-
-if 'manual_entries' not in st.session_state:
-    st.session_state.manual_entries = {}
-
-for _yr in sorted(st.session_state.manual_entries.keys()):
-    YEARS.append(_yr)
-    _e = st.session_state.manual_entries[_yr]
-    for _k in d:
-        if _k not in _BS_KEYS:
-            d[_k].append(_e.get(_k))
+d = load()
 
 def safe(val, fmt="pct", dec=1):
     try:
@@ -194,50 +193,44 @@ def line_chart(title, series_dict, y_fmt="pct", height=280):
     fig = go.Figure()
     colors = [TEAL, NAVY, GREEN, AMBER, RED]
     for i, (name, vals) in enumerate(series_dict.items()):
-        pairs = [(y, v*100 if y_fmt=="pct" else v) for y, v in zip(YEARS, vals) if v is not None]
-        xs = [p[0] for p in pairs]
-        yv = [p[1] for p in pairs]
-        fig.add_trace(go.Scatter(x=xs, y=yv, name=name,
+        yv = [v*100 if y_fmt=="pct" and v is not None else v for v in vals]
+        fig.add_trace(go.Scatter(x=YEARS, y=yv, name=name,
             line=dict(color=colors[i % len(colors)], width=2.5),
             mode="lines+markers", marker=dict(size=6)))
+    ytitle = "%" if y_fmt=="pct" else "EURm"
     fig.update_layout(height=height, margin=dict(l=0,r=0,t=30,b=0),
         title=dict(text=title, font=dict(size=12, color=NAVY), x=0),
-        font=dict(color="#111111"),
         plot_bgcolor="white", paper_bgcolor="white",
-        legend=dict(orientation="h", y=-0.2, font=dict(size=10, color="#111111")),
-        yaxis=dict(ticksuffix="%" if y_fmt=="pct" else "", gridcolor="#F0F0F0",
-                   tickfont=dict(size=10, color="#111111")),
-        xaxis=dict(tickfont=dict(size=10, color="#111111"), dtick=1))
+        legend=dict(orientation="h", y=-0.2, font=dict(size=10)),
+        yaxis=dict(ticksuffix="%" if y_fmt=="pct" else "", gridcolor="#F0F0F0", tickfont=dict(size=10)),
+        xaxis=dict(tickfont=dict(size=10), dtick=1))
     return fig
 
 def bar_chart(title, series_dict, height=280, stack=False):
     fig = go.Figure()
-    colors = [TEAL, NAVY, GREEN, AMBER, RED, "#6B7280"]
+    colors = [TEAL, NAVY, GREEN, AMBER, RED, "#8E44AD"]
     bt = "stack" if stack else "group"
     for i, (name, vals) in enumerate(series_dict.items()):
         c = colors[i % len(colors)]
-        clean = [v if v is not None else 0 for v in vals]
-        fig.add_trace(go.Bar(x=YEARS, y=clean, name=name,
+        fig.add_trace(go.Bar(x=YEARS, y=vals, name=name,
             marker_color=c, opacity=0.88))
     fig.update_layout(barmode=bt, height=height, margin=dict(l=0,r=0,t=30,b=0),
         title=dict(text=title, font=dict(size=12, color=NAVY), x=0),
-        font=dict(color="#111111"),
         plot_bgcolor="white", paper_bgcolor="white",
-        legend=dict(orientation="h", y=-0.2, font=dict(size=10, color="#111111")),
-        yaxis=dict(gridcolor="#F0F0F0", tickfont=dict(size=10, color="#111111")),
-        xaxis=dict(tickfont=dict(size=10, color="#111111"), dtick=1))
+        legend=dict(orientation="h", y=-0.2, font=dict(size=10)),
+        yaxis=dict(gridcolor="#F0F0F0", tickfont=dict(size=10)),
+        xaxis=dict(tickfont=dict(size=10), dtick=1))
     return fig
 
 def donut(labels, values, title, colors_list):
     fig = go.Figure(go.Pie(labels=labels, values=[abs(v) for v in values],
         hole=0.62, marker_colors=colors_list,
-        textinfo="percent", textfont=dict(size=10, color="#111111"),
+        textinfo="percent", textfont=dict(size=10),
         hovertemplate="%{label}: %{value:,.0f} EURm<extra></extra>"))
     fig.update_layout(height=220, margin=dict(l=0,r=0,t=30,b=0),
         title=dict(text=title, font=dict(size=12, color=NAVY), x=0),
-        font=dict(color="#111111"),
         plot_bgcolor="white", paper_bgcolor="white",
-        showlegend=True, legend=dict(font=dict(size=9, color="#111111"), orientation="h", y=-0.1))
+        showlegend=True, legend=dict(font=dict(size=9), orientation="h", y=-0.1))
     return fig
 
 def gauge(value, title, min_v, max_v, thresholds, fmt="pct"):
@@ -246,40 +239,39 @@ def gauge(value, title, min_v, max_v, thresholds, fmt="pct"):
     vmax = max_v*100 if fmt=="pct" else max_v
     steps = []
     prev = vmin
-    zone_colors = ["rgba(192,57,43,0.12)", "rgba(196,120,0,0.12)",
-                   "rgba(26,122,60,0.12)"]
-    for idx, (tv, col) in enumerate(zip(thresholds, zone_colors)):
+    cols = [RED, AMBER, GREEN]
+    for i, (tv, col) in enumerate(zip(thresholds, cols)):
         tv2 = tv*100 if fmt=="pct" else tv
-        steps.append(dict(range=[prev, tv2], color=col))
+        steps.append(dict(range=[prev, tv2], color=col+"22"))
         prev = tv2
-    steps.append(dict(range=[prev, vmax], color="rgba(26,122,60,0.12)"))
+    steps.append(dict(range=[prev, vmax], color=GREEN+"22"))
     fig = go.Figure(go.Indicator(mode="gauge+number",
         value=display,
-        title=dict(text=title, font=dict(size=11, color="#111111")),
-        number=dict(suffix="%" if fmt=="pct" else "x", font=dict(size=18, color="#111111")),
-        gauge=dict(axis=dict(range=[vmin, vmax], tickfont=dict(size=8, color="#111111")),
+        title=dict(text=title, font=dict(size=11, color=NAVY)),
+        number=dict(suffix="%" if fmt=="pct" else "x", font=dict(size=18, color=NAVY)),
+        gauge=dict(axis=dict(range=[vmin, vmax], tickfont=dict(size=8)),
             bar=dict(color=TEAL, thickness=0.35),
             steps=steps, bgcolor="white",
             borderwidth=1, bordercolor="#E2E8F0")))
     fig.update_layout(height=200, margin=dict(l=20,r=20,t=40,b=10),
-        font=dict(color="#111111"),
         paper_bgcolor="white")
     return fig
 
 def ratio_table(rows):
     html = '<table style="width:100%;border-collapse:collapse;font-size:12px">'
-    html += '<tr style="background:#111111">'
-    for h in ["Ratio", "FY2025", "FY2024", "FY2023", "FY2022", "FY2021", "Signal"]:
-        html += f'<th style="padding:7px 10px;text-align:left;font-weight:600;color:white">{h}</th>'
+    html += '<tr style="background:#1F497D;color:white">'
+    for h in ["Ratio","FY2025","FY2024","FY2023","FY2022","FY2021","Signal"]:
+        html += f'<th style="padding:6px 8px;text-align:left;font-weight:600">{h}</th>'
     html += "</tr>"
     for i, row in enumerate(rows):
-        bg = "#F8FAFB" if i % 2 == 0 else "white"
-        sig_text, sc = row[-1]
-        badge_bg = {GREEN: "#D4EDDA", AMBER: "#F3F4F6", RED: "#F8D7DA"}.get(sc, "#F3F4F6")
+        bg = "#F8FAFB" if i%2==0 else "white"
+        sig, sc = row[-1]
+        cols_map = {GREEN:"#D4EDDA", AMBER:"#FFF3CD", RED:"#F8D7DA"}
+        sbg = cols_map.get(sc, "#E8ECF0")
         html += f'<tr style="background:{bg}">'
         for cell in row[:-1]:
-            html += f'<td style="padding:6px 10px;border-bottom:1px solid #F0F0F0;color:#111111">{cell}</td>'
-        html += f'<td style="padding:6px 10px;border-bottom:1px solid #F0F0F0"><span style="background:{badge_bg};color:{sc};padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px">{sig_text}</span></td>'
+            html += f'<td style="padding:5px 8px;border-bottom:1px solid #F0F0F0">{cell}</td>'
+        html += f'<td style="padding:5px 8px;border-bottom:1px solid #F0F0F0"><span style="background:{sbg};color:{sc};padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px">{sig}</span></td>'
         html += "</tr>"
     html += "</table>"
     st.markdown(html, unsafe_allow_html=True)
@@ -303,11 +295,11 @@ def sig(val, low_g, low_a, inverse=False):
 st.markdown(f"""
 <div style="background:linear-gradient(135deg,{NAVY} 0%,{TEAL} 100%);padding:20px 28px;border-radius:12px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
   <div>
-    <div style="color:white;font-size:22px;font-weight:700;letter-spacing:.02em">Schneider Electric</div>
+    <div style="color:white;font-size:22px;font-weight:700;letter-spacing:.02em">⚡ Schneider Electric</div>
     <div style="color:rgba(255,255,255,.75);font-size:13px;margin-top:3px">Financial Dashboard · FY2021–FY2025 · Consolidated Annual Reports · Figures in EURm</div>
   </div>
   <div style="text-align:right">
-    <div style="background:{GREEN};color:white;padding:6px 18px;border-radius:20px;font-weight:700;font-size:14px">STRONG</div>
+    <div style="background:#1A7A3C;color:white;padding:6px 18px;border-radius:20px;font-weight:700;font-size:14px">STRONG</div>
     <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:4px">EBIT Margin {safe(d['ebit_m'][4],'pct')} · ROE {safe(d['roe'][4],'pct')}</div>
   </div>
 </div>""", unsafe_allow_html=True)
@@ -315,7 +307,7 @@ st.markdown(f"""
 # ═══════════════════════════════════════════════════════════════════
 # TABS
 # ═══════════════════════════════════════════════════════════════════
-tabs = st.tabs(["Overview", "Profitability", "Liquidity", "Leverage", "Cash Flow", "Diagnosis", "Data Entry"])
+tabs = st.tabs(["Overview", "Profitability", "Liquidity", "Leverage", "Cash Flow", "Diagnosis"])
 
 # ─── TAB 1: OVERVIEW ───────────────────────────────────────────────
 with tabs[0]:
@@ -398,12 +390,8 @@ with tabs[1]:
             name="COGS Growth", line=dict(color=RED,width=2.5,dash="dash"), mode="lines+markers"))
         fig.update_layout(height=280,margin=dict(l=0,r=0,t=10,b=0),
             plot_bgcolor="white",paper_bgcolor="white",
-            font=dict(color="#111111"),
-            yaxis=dict(ticksuffix="%",gridcolor="#F0F0F0",tickfont=dict(size=10,color="#111111")),
-            xaxis=dict(tickmode="array", tickvals=[2021,2022,2023,2024,2025],
-                       ticktext=["2021","2022","2023","2024","2025"],
-                       tickfont=dict(size=10,color="#111111")),
-            legend=dict(orientation="h",y=-0.2,font=dict(size=10,color="#111111")))
+            yaxis=dict(ticksuffix="%",gridcolor="#F0F0F0"),
+            legend=dict(orientation="h",y=-0.2,font=dict(size=10)))
         st.plotly_chart(fig, use_container_width=True)
 
     section("DuPont Decomposition — ROE = ROS x Asset Turnover x Equity Multiplier")
@@ -424,32 +412,12 @@ with tabs[1]:
 
 # ─── TAB 3: LIQUIDITY ──────────────────────────────────────────────
 with tabs[2]:
-    section("Liquidity Ratios — FY2025 Snapshot")
+    section("Liquidity Ratios")
     c1,c2,c3 = st.columns(3)
-    with c1:
-        st.plotly_chart(gauge(d['current_r'][4],"Current Ratio",0,2.5,[1.0,1.5],"x"), use_container_width=True)
-        st.markdown(f"""<div style="background:#F8FAFB;border-radius:8px;padding:10px 14px;font-size:11px;color:#4B5563;border:1px solid #E2E8F0">
-        <b>Formula:</b> Current Assets / Current Liabilities<br>
-        <b>Benchmark:</b> &gt;1.5 Strong · 1.0–1.5 Watch · &lt;1.0 Risk<br>
-        <b>YoY change:</b> {delta_str(d['current_r'][4], d['current_r'][3])}
-        </div>""", unsafe_allow_html=True)
-    with c2:
-        st.plotly_chart(gauge(d['quick_r'][4],"Quick Ratio",0,2,[0.7,1.0],"x"), use_container_width=True)
-        st.markdown(f"""<div style="background:#F8FAFB;border-radius:8px;padding:10px 14px;font-size:11px;color:#4B5563;border:1px solid #E2E8F0">
-        <b>Formula:</b> (Current Assets − Inventories) / Current Liabilities<br>
-        <b>Benchmark:</b> &gt;1.0 Strong · 0.7–1.0 Watch · &lt;0.7 Risk<br>
-        <b>YoY change:</b> {delta_str(d['quick_r'][4], d['quick_r'][3])}
-        </div>""", unsafe_allow_html=True)
-    with c3:
-        st.plotly_chart(gauge(d['cash_r'][4],"Cash Ratio",0,1,[0.2,0.4],"x"), use_container_width=True)
-        st.markdown(f"""<div style="background:#F8FAFB;border-radius:8px;padding:10px 14px;font-size:11px;color:#4B5563;border:1px solid #E2E8F0">
-        <b>Formula:</b> Cash & Equivalents / Current Liabilities<br>
-        <b>Benchmark:</b> &gt;0.4 Strong · 0.2–0.4 Watch · &lt;0.2 Risk<br>
-        <b>YoY change:</b> {delta_str(d['cash_r'][4], d['cash_r'][3])}
-        </div>""", unsafe_allow_html=True)
+    with c1: st.plotly_chart(gauge(d['current_r'][4],"Current Ratio",0,2.5,[1.0,1.5],"x"), use_container_width=True)
+    with c2: st.plotly_chart(gauge(d['quick_r'][4],"Quick Ratio",0,2,[0.7,1.0],"x"), use_container_width=True)
+    with c3: st.plotly_chart(gauge(d['cash_r'][4],"Cash Ratio",0,1,[0.2,0.4],"x"), use_container_width=True)
 
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    section("5-Year Liquidity Table")
     ratio_table([
         ["Current Ratio", *[safe(d['current_r'][i],'x') for i in [4,3,2,1,0]], sig(d['current_r'][4],1.5,1.0)],
         ["Quick Ratio",   *[safe(d['quick_r'][i],'x') for i in [4,3,2,1,0]],  sig(d['quick_r'][4],1.0,0.7)],
@@ -497,9 +465,7 @@ with tabs[3]:
             text=[f"{v:,.0f}" for v in d['net_debt']], textposition="outside", textfont=dict(size=10)))
         fig.update_layout(height=280,margin=dict(l=0,r=0,t=10,b=0),
             plot_bgcolor="white",paper_bgcolor="white",
-            font=dict(color="#111111"),
-            yaxis=dict(gridcolor="#F0F0F0",tickfont=dict(color="#111111")),
-            xaxis=dict(tickfont=dict(color="#111111")),showlegend=False)
+            yaxis=dict(gridcolor="#F0F0F0"),showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
     with c2:
         section("Coverage Ratios")
@@ -641,154 +607,3 @@ with tabs[5]:
     <div style="font-size:11px;font-weight:700;color:#F57F17;margin-bottom:8px;text-transform:uppercase">Recommendation</div>
     <div style="font-size:11px;color:#888;font-style:italic">Write your overall recommendation here...</div>
     </div>""", unsafe_allow_html=True)
-
-# ─── TAB 7: DATA ENTRY ─────────────────────────────────────────────
-with tabs[6]:
-    section("Manual Data Entry")
-    st.markdown(
-        '<p style="font-size:13px;color:#4B5563;margin-bottom:16px">'
-        'Enter raw financial figures for a new fiscal year. '
-        'All charts and trend analysis update automatically once you submit.</p>',
-        unsafe_allow_html=True
-    )
-
-    col_yr, col_clr = st.columns([3, 1])
-    with col_yr:
-        entry_year = st.selectbox("Fiscal Year to Add / Update",
-                                  [2026, 2027, 2028, 2029, 2030])
-    with col_clr:
-        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-        if st.button("Clear All Entries", type="secondary"):
-            st.session_state.manual_entries = {}
-            st.rerun()
-
-    with st.form("data_entry_form"):
-
-        section("Income Statement (EURm)")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            inp_revenue = st.number_input("Revenue",      value=0.0, step=100.0, format="%.1f")
-            inp_gross   = st.number_input("Gross Profit", value=0.0, step=100.0, format="%.1f")
-            inp_ebita   = st.number_input("EBITA",        value=0.0, step=100.0, format="%.1f")
-        with c2:
-            inp_ebitda  = st.number_input("EBITDA",       value=0.0, step=100.0, format="%.1f")
-            inp_ebit    = st.number_input("EBIT",         value=0.0, step=100.0, format="%.1f")
-            inp_ni      = st.number_input("Net Income",   value=0.0, step=100.0, format="%.1f")
-        with c3:
-            inp_cogs    = st.number_input("COGS (enter as negative)",             value=0.0, step=100.0, format="%.1f")
-            inp_int_exp = st.number_input("Gross Interest Expense (as negative)", value=0.0, step=10.0,  format="%.1f")
-
-        section("Cash Flow Statement (EURm)")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            inp_cfo     = st.number_input("Cash from Operations (CFO)",  value=0.0, step=100.0, format="%.1f")
-            inp_capex   = st.number_input("Net CapEx (as negative)",     value=0.0, step=50.0,  format="%.1f")
-            inp_cfi     = st.number_input("Cash from Investing (CFI)",   value=0.0, step=100.0, format="%.1f")
-        with c2:
-            inp_cff     = st.number_input("Cash from Financing (CFF)",   value=0.0, step=100.0, format="%.1f")
-            inp_divs    = st.number_input("Dividends (as negative)",     value=0.0, step=50.0,  format="%.1f")
-        with c3:
-            inp_buyback = st.number_input("Buybacks (as negative)",      value=0.0, step=50.0,  format="%.1f")
-            inp_ma      = st.number_input("M&A / Acquisitions",          value=0.0, step=100.0, format="%.1f")
-
-        section("Balance Sheet Ratios")
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            inp_roe      = st.number_input("ROE (%)",               value=0.0, step=0.1,  format="%.2f")
-            inp_roce     = st.number_input("ROCE (%)",              value=0.0, step=0.1,  format="%.2f")
-            inp_asset_to = st.number_input("Asset Turnover (x)",   value=0.0, step=0.01, format="%.3f")
-            inp_eq_mult  = st.number_input("Equity Multiplier (x)",value=0.0, step=0.1,  format="%.2f")
-        with c2:
-            inp_cur  = st.number_input("Current Ratio (x)", value=0.0, step=0.01, format="%.2f")
-            inp_qck  = st.number_input("Quick Ratio (x)",   value=0.0, step=0.01, format="%.2f")
-            inp_csh  = st.number_input("Cash Ratio (x)",    value=0.0, step=0.01, format="%.2f")
-        with c3:
-            inp_net_debt = st.number_input("Net Debt (EURm)",        value=0.0, step=100.0, format="%.1f")
-            inp_de       = st.number_input("Debt / Equity (x)",      value=0.0, step=0.1,   format="%.2f")
-            inp_debt_r   = st.number_input("Total Debt Ratio (%)",   value=0.0, step=0.1,   format="%.2f")
-            inp_int_cov  = st.number_input("Int. Coverage EBIT (x)", value=0.0, step=0.1,   format="%.1f")
-        with c4:
-            inp_dso = st.number_input("DSO (days)", value=0.0, step=1.0, format="%.1f")
-            inp_dio = st.number_input("DIO (days)", value=0.0, step=1.0, format="%.1f")
-            inp_dpo = st.number_input("DPO (days)", value=0.0, step=1.0, format="%.1f")
-
-        submitted = st.form_submit_button("Add to Dashboard", type="primary")
-
-        if submitted:
-            if inp_revenue <= 0:
-                st.error("Revenue must be greater than 0 to add an entry.")
-            else:
-                _fcf = inp_cfo + inp_capex
-                _dda = inp_ebitda - inp_ebita
-                _entry = {
-                    "revenue":     inp_revenue,
-                    "cogs":        inp_cogs,
-                    "gross_profit":inp_gross,
-                    "ebita":       inp_ebita,
-                    "ebitda":      inp_ebitda,
-                    "ebit":        inp_ebit,
-                    "net_income":  inp_ni,
-                    "int_expense": inp_int_exp,
-                    "roe":         inp_roe  / 100,
-                    "ros":         inp_ni   / inp_revenue if inp_revenue else None,
-                    "asset_to":    inp_asset_to,
-                    "eq_mult":     inp_eq_mult,
-                    "gross_m":     inp_gross   / inp_revenue if inp_revenue else None,
-                    "ebita_m":     inp_ebita   / inp_revenue if inp_revenue else None,
-                    "ebit_m":      inp_ebit    / inp_revenue if inp_revenue else None,
-                    "ebitda_m":    inp_ebitda  / inp_revenue if inp_revenue else None,
-                    "dso":         inp_dso,
-                    "dio":         inp_dio,
-                    "dpo":         inp_dpo,
-                    "ccc":         inp_dso + inp_dio - inp_dpo,
-                    "current_r":   inp_cur,
-                    "quick_r":     inp_qck,
-                    "cash_r":      inp_csh,
-                    "de_ratio":    inp_de,
-                    "debt_ratio":  inp_debt_r / 100,
-                    "int_cov":     inp_int_cov,
-                    "nd_ebita":    inp_net_debt / inp_ebita  if inp_ebita  else None,
-                    "payout":      None, "div_yield": None, "eps": None,
-                    "pe":          None, "pb":         None,
-                    "net_debt":    inp_net_debt,
-                    "ev":          None, "ev_ebita":   None,
-                    "roce":        inp_roce / 100,
-                    "nd_ebitda":   inp_net_debt / inp_ebitda  if inp_ebitda  else None,
-                    "int_cov_ebd": inp_ebitda   / abs(inp_int_exp) if inp_int_exp else None,
-                    "cfo":         inp_cfo,
-                    "capex":       inp_capex,
-                    "cfi":         inp_cfi,
-                    "cff":         inp_cff,
-                    "divs":        inp_divs,
-                    "buyback":     inp_buyback,
-                    "ma":          inp_ma,
-                    "fcf":         _fcf,
-                    "fcf_m":       _fcf  / inp_revenue if inp_revenue else None,
-                    "fcf_ni":      _fcf  / inp_ni      if inp_ni      else None,
-                    "cfo_ebd":     inp_cfo / inp_ebitda if inp_ebitda else None,
-                    "capex_r":     abs(inp_capex) / inp_revenue if inp_revenue else None,
-                    "capex_da":    abs(inp_capex) / _dda        if _dda       else None,
-                }
-                st.session_state.manual_entries[entry_year] = _entry
-                st.rerun()
-
-    # ── Active entries summary ────────────────────────────────────────
-    if st.session_state.manual_entries:
-        section("Active Manual Entries")
-        for _yr, _e in sorted(st.session_state.manual_entries.items()):
-            st.markdown(
-                f'<div style="background:white;border:1px solid #E2E8F0;border-radius:10px;'
-                f'padding:14px 18px;margin-bottom:10px">'
-                f'<span style="font-size:13px;font-weight:700;color:{NAVY}">FY{_yr}</span>'
-                f'<span style="margin-left:16px;font-size:12px;color:{DGRAY}">'
-                f'Revenue: <b>{safe(_e.get("revenue"),"eur")} €m</b> · '
-                f'EBIT Margin: <b>{safe(_e.get("ebit_m"),"pct")}</b> · '
-                f'FCF: <b>{safe(_e.get("fcf"),"eur")} €m</b> · '
-                f'Net Debt/EBITDA: <b>{safe(_e.get("nd_ebitda"),"x")}</b> · '
-                f'ROE: <b>{safe(_e.get("roe"),"pct")}</b>'
-                f'</span></div>',
-                unsafe_allow_html=True
-            )
-            if st.button(f"Remove FY{_yr}", key=f"del_{_yr}"):
-                del st.session_state.manual_entries[_yr]
-                st.rerun()
